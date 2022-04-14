@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "target": "esnext",
+    "resolveJsonModule": true,
+    "lib": ["esnext"],
+    "outDir": "dist",
+    "baseUrl": "./src",
+    "types": ["vite", "node"],
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "sourceMap": true
+  },
+  "include": ["./src/**/*.ts"]
+}

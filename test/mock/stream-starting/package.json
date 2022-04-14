@@ -1,0 +1,94 @@
+{
+  "author": {
+    "email": "devJimmyboy@gmail.com",
+    "name": "devJimmyboy",
+    "url": "https://jimmyboy.dev"
+  },
+  "browserslist": "chrome >= 95",
+  "dependencies": {
+    "@tailwindcss/forms": "^0.5.0",
+    "@types/jquery": "^3.5.14",
+    "daisyui": "^2.13.6",
+    "gsap": "^3.10.3",
+    "jquery": "^3.6.0",
+    "lodash.debounce": "^4.0.8",
+    "lodash.throttle": "^4.1.1",
+    "nanotimer": "^0.3.15",
+    "normalize.css": "^8.0.1",
+    "pixi-filters": "^4.1.6",
+    "pixi.js": "^6.3.0"
+  },
+  "description": "",
+  "devDependencies": {
+    "@types/jquery": "^3.5.14",
+    "@types/lodash": "^4.14.181",
+    "@types/lodash.debounce": "^4.0.6",
+    "@types/lodash.throttle": "^4.1.6",
+    "@types/p5": "^1.4.2",
+    "autoprefixer": "^10.4.4",
+    "nodecg-types": "^1.8.3",
+    "npm-run-all": "^4.1.5",
+    "postcss": "^8.4.12",
+    "postcss-import": "^14.1.0",
+    "postcss-nesting": "^10.1.4",
+    "postcss-preset-env": "^7.4.3",
+    "postcss-url": "^10.1.3",
+    "tailwindcss": "^3.0.24"
+  },
+  "files": [
+    "dashboard",
+    "graphics",
+    "extension.js",
+    "extension"
+  ],
+  "homepage": "",
+  "keywords": [
+    "",
+    "nodecg-bundle"
+  ],
+  "license": "Apache-2.0",
+  "name": "stream-starting",
+  "nodecg": {
+    "assetCategories": [
+      {
+        "allowedTypes": [
+          "webm"
+        ],
+        "name": "starting-videos",
+        "title": "Starting Soon Videos"
+      },
+      {
+        "allowedTypes": [
+          "webm"
+        ],
+        "name": "transition-videos",
+        "title": "Starting Transition Videos"
+      }
+    ],
+    "compatibleRange": "^1.6.1",
+    "dashboardPanels": [
+      {
+        "file": "index.html",
+        "fullbleed": true,
+        "headerColor": "#44AA66",
+        "name": "stream-starting",
+        "title": "Stream Starting"
+      }
+    ],
+    "graphics": [
+      {
+        "file": "index.html",
+        "height": 1080,
+        "singleInstance": false,
+        "width": 1920
+      }
+    ]
+  },
+  "repository": "https://github.com/devJimmyboy/nodecg-bundles.git",
+  "scripts": {
+    "build": "run-s build:*",
+    "dev": "nodecg-bundler watch",
+    "start": "npm run dev"
+  },
+  "version": "0.0.1"
+}
