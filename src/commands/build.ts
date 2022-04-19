@@ -14,6 +14,7 @@ const LOG_LEVEL: LogLevel = 'info'
 const logger = createLogger(LOG_LEVEL, { prefix: chalk.bold.green('[build]') })
 const { appPath, appPackageJson } = paths
 const pkg = require(appPackageJson)
+process.env.NODE_ENV = 'production'
 
 const sharedConfig: InlineConfig = {
   mode,
@@ -48,17 +49,6 @@ async function getCFG(type: 'extension' | 'graphics' | 'dashboard') {
   logger.info(chalk.green(`Loaded ${type} config.`))
   logger.info(chalk.yellow(`Building ${type}...`))
   return mergeConfig(sharedConfig, configFromFile)
-}
-
-async function setupExtensionWatcher() {
-  return build(await getCFG('extension'))
-}
-
-async function setupGraphicsWatcher() {
-  return build(await getCFG('graphics'))
-}
-async function setupDashboardWatcher() {
-  return build(await getCFG('dashboard'))
 }
 
 export = async function (program: Command) {

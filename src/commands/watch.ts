@@ -8,6 +8,7 @@ import dashboardConfig from '../configs/dashboard.config'
 import { Command } from 'commander'
 import chalk from 'chalk'
 import path, { join } from 'path'
+process.env.NODE_ENV = 'development'
 
 const mode = (process.env.MODE = process.env.MODE || 'development')
 
@@ -15,11 +16,15 @@ const LOG_LEVEL: LogLevel = 'info'
 const { appPath, appPackageJson } = paths
 const pkg = require(appPackageJson)
 
-const sharedConfig: InlineConfig = {
+const sharedConfig: (type: string) => InlineConfig = (type: string) => ({
   mode,
-  build: {},
+  build: {
+    watch: {
+      include: [`src/${type}/**/*`],
+    },
+  },
   logLevel: LOG_LEVEL,
-}
+})
 
 async function getCFG(type: 'extension' | 'graphics' | 'dashboard') {
   const userConfig = await loadConfigFromFile({ command: 'build', mode: mode }, undefined, join(appPath, `src/${type}`)).catch((err) => {
@@ -44,7 +49,7 @@ async function getCFG(type: 'extension' | 'graphics' | 'dashboard') {
       configFromFile = mergeConfig(dashboardConfig, config)
       break
   }
-  return mergeConfig(sharedConfig, configFromFile)
+  return mergeConfig(sharedConfig(type), configFromFile)
 }
 
 async function setupExtensionWatcher() {
@@ -91,8 +96,12 @@ export = async function (program: Command) {
         }
         process.once('beforeExit', async (code) => {
           console.log('Closing watchers...')
-
-          await Promise.all([ext?.close(), graphics?.close(), dashboard?.close()])
+          const proms = []
+          function isClosable(watcher: RollupWatcher | undefined): watcher is RollupWatcher {
+            return !!watcher && typeof watcher.close === 'function'
+          }
+          proms.push(isClosable(ext) && ext.close(), isClosable(graphics) && graphics.close(), isClosable(dashboard) && dashboard.close())
+          await Promise.all(proms)
           return process.exit(code)
         })
       })

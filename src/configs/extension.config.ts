@@ -1,22 +1,29 @@
+import path from 'path'
 import { defineConfig } from 'vite'
 
 const isDev = process.env.NODE_ENV === 'development'
-
+const rootDir = path.resolve(process.cwd(), 'src/extension/')
 export default defineConfig({
-  root: 'src/extension/',
+  mode: isDev ? 'development' : 'production',
+  root: rootDir,
   build: {
     outDir: '../../extension',
     minify: isDev,
     emptyOutDir: true,
     chunkSizeWarningLimit: isDev ? 0 : 1024,
-    sourcemap: true,
-    watch: {
-      include: ['src/extension/**/*.{ts,js}'],
-    },
+    sourcemap: isDev,
+    watch: isDev
+      ? {
+          include: ['src/extension/**/*.{ts,js}'],
+        }
+      : undefined,
     lib: {
-      entry: 'index.ts',
+      entry: path.resolve(rootDir, 'index.ts'),
       formats: ['cjs'],
-      fileName: () => '[name].js',
+      fileName: (form) => `[name].${form === 'cjs' ? 'js' : form}`,
+    },
+    rollupOptions: {
+      external: ['nodecg-types'],
     },
   },
 })
