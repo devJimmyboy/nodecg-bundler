@@ -1,6 +1,6 @@
 {
   "name": "nodecg-bundler",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A Wrapper around Vite designed specifically for NodeCG Bundles.",
   "license": "MIT",
   "bin": {
