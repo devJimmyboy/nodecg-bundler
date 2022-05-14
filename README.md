@@ -89,6 +89,8 @@ src/
     ...
 ```
 
+### Load root cinfiguration (Workaround)
+
 If you want to include root config as like this:
 ```bash
 vite.config.ts <-- Root config
