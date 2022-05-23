@@ -89,66 +89,41 @@ src/
     ...
 ```
 
-### Loading root configuration (Workaround)
+### Creating a Root configuration
 
-If you want to include root config as like this:
+If you want to include a root config like this:
+
 ```bash
-vite.config.ts <-- Root config
 src/
   dashboard/
-    vite.config.ts <-- To load root config to do like resolving aliases (@/components etc.)
-    index.ts
     ...
   graphics/
-    vite.config.ts
-    index.ts
     ...
   extension/
-    vite.config.ts
-    index.ts
     ...
+package.json
+vite.config.ts # <-- Root config
 ```
 
-Write hacky workaround for now (ex: `dashboard/vite.config.ts`):
-```ts
-import path from 'path'
-import { defineConfig, mergeConfig, loadConfigFromFile, loadEnv } from 'vite'
+#### Disclaimers
 
-export default defineConfig(async ({ command, mode }) => {
-  const rootConfig = await loadConfigFromFile(
-    { command: command, mode: mode },
-    path.resolve(__dirname, "../../vite.config.ts")
-  )
+- You shouldn't modify the `build` property of the root config. Otherwise everything will build into that directory (which is not what you want).
+- Don't change `server.port`, it'll cause an error on all build processes.
 
-  const config: Record<string, any> = {
-    // Your existing user defined config here...
-    
-    // resolve: { ... },
-    // plugins: [{ ... }],
-  }
+Example Root Config:
 
-  if (rootConfig?.config)
-    return mergeConfig(rootConfig?.config, config)
-  else
-    return config
-})
-```
-
-And then make a change for root config:
 ```ts
 import path from 'path'
 import { defineConfig, loadEnv } from 'vite'
 
 export default defineConfig(({ mode }) => {
-  // Load environment variables and to apply them for other configs
+  // Load Environment variables and apply them for other configs
   process.env = { ...loadEnv(mode, process.cwd()) }
 
   return {
     // Or to define alias for your needs
     resolve: {
-      alias: [
-        { find: '@', replacement: path.resolve(__dirname, './src') },
-      ],
+      alias: [{ find: '@', replacement: path.resolve(__dirname, './src') }],
     },
   }
 })
