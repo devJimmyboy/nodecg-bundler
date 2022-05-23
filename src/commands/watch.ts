@@ -10,7 +10,7 @@ import chalk from 'chalk'
 import path, { join } from 'path'
 process.env.NODE_ENV = 'development'
 
-const mode = (process.env.MODE = process.env.MODE || 'development')
+const mode = (process.env.MODE = process.env.MODE ?? process.env.NODE_ENV ?? 'development')
 
 const LOG_LEVEL: LogLevel = 'info'
 const { appPath, appPackageJson } = paths
@@ -19,6 +19,8 @@ const pkg = require(appPackageJson)
 const sharedConfig: (type: string) => InlineConfig = (type: string) => ({
   mode,
   build: {
+    minify: mode !== 'development',
+    sourcemap: 'inline',
     watch: {
       include: [`src/${type}/**/*`],
     },
