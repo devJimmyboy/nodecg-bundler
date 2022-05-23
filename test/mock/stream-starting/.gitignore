@@ -3,3 +3,4 @@ dashboard
 extension
 graphics
 !src/**/*
+src/**/dist

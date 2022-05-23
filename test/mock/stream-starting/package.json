@@ -87,7 +87,7 @@
   },
   "repository": "https://github.com/devJimmyboy/nodecg-bundles.git",
   "scripts": {
-    "build": "run-s build:*",
+    "build": "nodecg-bundler build",
     "dev": "nodecg-bundler watch",
     "start": "npm run dev"
   },

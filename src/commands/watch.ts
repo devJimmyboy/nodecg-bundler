@@ -6,7 +6,6 @@ import extensionConfig from '../configs/extension.config'
 import graphicsConfig from '../configs/graphics.config'
 import dashboardConfig from '../configs/dashboard.config'
 import { Command } from 'commander'
-import chalk from 'chalk'
 import path, { join } from 'path'
 process.env.NODE_ENV = 'development'
 
@@ -19,7 +18,7 @@ const pkg = require(appPackageJson)
 const sharedConfig: (type: string) => InlineConfig = (type: string) => ({
   mode,
   build: {
-    minify: mode !== 'development',
+    minify: false,
     sourcemap: 'inline',
     watch: {
       include: [`src/${type}/**/*`],
@@ -28,12 +27,19 @@ const sharedConfig: (type: string) => InlineConfig = (type: string) => ({
   logLevel: LOG_LEVEL,
 })
 
+const rootConfigPromise = loadConfigFromFile({ command: 'build', mode: mode }, undefined, appPath).catch((err) => {
+  console.error(err)
+  process.exit(1)
+})
+
 async function getCFG(type: 'extension' | 'graphics' | 'dashboard') {
+  const rootConfig = await rootConfigPromise;
+
   const userConfig = await loadConfigFromFile({ command: 'build', mode: mode }, undefined, join(appPath, `src/${type}`)).catch((err) => {
     console.error(err)
     process.exit(1)
   })
-  let config = userConfig?.config || {}
+  let config = mergeConfig(rootConfig?.config || {}, userConfig?.config || {})
   config.customLogger = createLogger(LOG_LEVEL, { prefix: `[${type}]` })
   if (type === 'extension') {
     const externals = [...builtinModules, ...Object.keys(pkg.dependencies || {})]

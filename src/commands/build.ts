@@ -8,27 +8,33 @@ import dashboardConfig from '../configs/dashboard.config'
 import { Command } from 'commander'
 import chalk from 'chalk'
 import path, { join } from 'path'
+process.env.NODE_ENV = 'production'
 
-const mode = (process.env.MODE = process.env.MODE || 'production')
+const mode = (process.env.MODE = process.env.MODE ?? process.env.NODE_ENV ?? 'development')
 const LOG_LEVEL: LogLevel = 'info'
 const logger = createLogger(LOG_LEVEL, { prefix: chalk.bold.green('[build]') })
 const { appPath, appPackageJson } = paths
 const pkg = require(appPackageJson)
-process.env.NODE_ENV = 'production'
 
 const sharedConfig: InlineConfig = {
   mode,
-  build: {},
   logLevel: LOG_LEVEL,
 }
 
+const rootConfigPromise = loadConfigFromFile({ command: 'build', mode: mode }, undefined, appPath).catch((err) => {
+  logger.error(err)
+  process.exit(1)
+})
+
 async function getCFG(type: 'extension' | 'graphics' | 'dashboard') {
   logger.info(chalk.yellow(`Loading ${type} config...`))
+  const rootConfig = await rootConfigPromise;
+
   const userConfig = await loadConfigFromFile({ command: 'build', mode: mode }, undefined, join(appPath, `src/${type}`)).catch((err) => {
     console.error(err)
     process.exit(1)
   })
-  let config = userConfig?.config || {}
+  let config = mergeConfig(rootConfig?.config || {}, userConfig?.config || {})
   config.customLogger = createLogger(LOG_LEVEL, { prefix: `[${type}]` })
   if (type === 'extension') {
     const externals = [...builtinModules, ...Object.keys(pkg.dependencies || {})]
