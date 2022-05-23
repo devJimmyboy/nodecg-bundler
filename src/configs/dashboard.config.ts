@@ -9,7 +9,7 @@ export default defineConfig({
   build: {
     outDir: '../../dashboard',
     minify: isDev ? false : 'esbuild',
-    emptyOutDir: true,
+    emptyOutDir: false,
     chunkSizeWarningLimit: isDev ? 0 : 1024,
     sourcemap: isDev ? 'inline' : false,
     watch: isDev
