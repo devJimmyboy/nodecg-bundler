@@ -10,7 +10,7 @@ export default defineConfig({
   build: {
     outDir: '../../graphics',
     minify: isDev,
-    emptyOutDir: true,
+    emptyOutDir: false,
     chunkSizeWarningLimit: isDev ? 0 : 1024,
     sourcemap: isDev ? 'inline' : false,
     watch: isDev

@@ -89,6 +89,46 @@ src/
     ...
 ```
 
+### Creating a Root configuration
+
+If you want to include a root config like this:
+
+```bash
+src/
+  dashboard/
+    ...
+  graphics/
+    ...
+  extension/
+    ...
+package.json
+vite.config.ts # <-- Root config
+```
+
+#### Disclaimers
+
+- You shouldn't modify the `build` property of the root config. Otherwise everything will build into that directory (which is not what you want).
+- Don't change `server.port`, it'll cause an error on all build processes.
+
+Example Root Config:
+
+```ts
+import path from 'path'
+import { defineConfig, loadEnv } from 'vite'
+
+export default defineConfig(({ mode }) => {
+  // Load Environment variables and apply them for other configs
+  process.env = { ...loadEnv(mode, process.cwd()) }
+
+  return {
+    // Or to define alias for your needs
+    resolve: {
+      alias: [{ find: '@', replacement: path.resolve(__dirname, './src') }],
+    },
+  }
+})
+```
+
 ## References
 
 - [Vite](https://vitejs.dev)
