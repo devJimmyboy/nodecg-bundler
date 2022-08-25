@@ -8,9 +8,8 @@ import dashboardConfig from '../configs/dashboard.config'
 import { Command } from 'commander'
 import chalk from 'chalk'
 import path, { join } from 'path'
-process.env.NODE_ENV = 'production'
 
-const mode = (process.env.MODE = process.env.MODE ?? process.env.NODE_ENV ?? 'development')
+const mode = (process.env.MODE = process.env.MODE ?? process.env.NODE_ENV ?? 'production')
 const LOG_LEVEL: LogLevel = 'info'
 const logger = createLogger(LOG_LEVEL, { prefix: chalk.bold.green('[build]') })
 const { appPath, appPackageJson } = paths
@@ -21,14 +20,25 @@ const sharedConfig: InlineConfig = {
   logLevel: LOG_LEVEL,
 }
 
-const rootConfigPromise = loadConfigFromFile({ command: 'build', mode: mode }, undefined, appPath).catch((err) => {
-  logger.error(err)
-  process.exit(1)
-})
+const rootConfigPromise = loadConfigFromFile({ command: 'build', mode: mode }, undefined, appPath)
+  .then((root) => ({
+    ...root,
+    config: {
+      ...(root?.config || {}),
+      build: {
+        ...(root?.config?.build || {}),
+        outDir: root?.config?.build?.outDir ? join(appPath, root.config.build.outDir) : join(appPath, 'dist'),
+      },
+    },
+  }))
+  .catch((err) => {
+    logger.error(err)
+    process.exit(1)
+  })
 
 async function getCFG(type: 'extension' | 'graphics' | 'dashboard') {
   logger.info(chalk.yellow(`Loading ${type} config...`))
-  const rootConfig = await rootConfigPromise;
+  const rootConfig = await rootConfigPromise
 
   const userConfig = await loadConfigFromFile({ command: 'build', mode: mode }, undefined, join(appPath, `src/${type}`)).catch((err) => {
     console.error(err)

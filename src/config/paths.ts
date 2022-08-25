@@ -1,7 +1,8 @@
 import path from 'path'
 import fs from 'fs'
+import { searchForWorkspaceRoot } from 'vite'
 
-const appDirectory = fs.realpathSync(process.cwd())
+const appDirectory = searchForWorkspaceRoot(process.cwd())
 const resolveApp = (relativePath: string) => path.resolve(appDirectory, relativePath)
 
 const buildPath = process.env.BUILD_PATH || 'dist'
@@ -29,6 +30,7 @@ export default {
   appSrc: resolveApp('src'),
   appTsConfig: resolveApp('tsconfig.json'),
   appJsConfig: resolveApp('jsconfig.json'),
+  appConfig: resolveModule(resolveApp, './nodecg-bundler.config'),
   yarnLockFile: resolveApp('yarn.lock'),
   testsSetup: resolveModule(resolveApp, 'src/setupTests'),
   proxySetup: resolveApp('src/setupProxy.js'),

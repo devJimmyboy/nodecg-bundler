@@ -15,8 +15,6 @@ yarn add --dev nodecg-bundler
 
 ## File Structure
 
----
-
 The file structure of a NodeCG bundle compiled by **nodecg-bundler** is by default:
 
 ```bash

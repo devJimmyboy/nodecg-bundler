@@ -4,16 +4,16 @@ process.title = 'nodecg-bundler'
 import semver from 'semver'
 import chalk from 'chalk'
 import { Command } from 'commander'
-import fetch from 'node-fetch'
+import { request } from 'undici'
 
 const program = new Command('nodecg-bundler')
 const packageVersion: string = require('../package.json').version
 
 // Check for updates
-fetch('http://registry.npmjs.org/nodecg-bundler/latest')
+request('http://registry.npmjs.org/nodecg-bundler/latest')
   .then((res) => {
-    if (res.status === 200) {
-      return res.json()
+    if (res.statusCode === 200) {
+      return res.body.json()
     } else return undefined
   })
   .then((body: any) => {

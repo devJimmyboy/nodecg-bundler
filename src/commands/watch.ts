@@ -7,9 +7,11 @@ import graphicsConfig from '../configs/graphics.config'
 import dashboardConfig from '../configs/dashboard.config'
 import { Command } from 'commander'
 import path, { join } from 'path'
-process.env.NODE_ENV = 'development'
+import chalk from 'chalk'
+import { existsSync } from 'fs'
 
-const mode = (process.env.MODE = process.env.MODE ?? process.env.NODE_ENV ?? 'development')
+process.env.NODE_ENV = process.env.NODE_ENV ?? 'development'
+const mode = (process.env.MODE = process.env.MODE ?? process.env.NODE_ENV)
 
 const LOG_LEVEL: LogLevel = 'info'
 const { appPath, appPackageJson } = paths
@@ -33,7 +35,7 @@ const rootConfigPromise = loadConfigFromFile({ command: 'build', mode: mode }, u
 })
 
 async function getCFG(type: 'extension' | 'graphics' | 'dashboard') {
-  const rootConfig = await rootConfigPromise;
+  const rootConfig = await rootConfigPromise
 
   const userConfig = await loadConfigFromFile({ command: 'build', mode: mode }, undefined, join(appPath, `src/${type}`)).catch((err) => {
     console.error(err)
@@ -114,7 +116,7 @@ export = async function (program: Command) {
         })
       })
   } catch (e) {
-    console.error(e)
+    console.error(chalk.redBright(e))
     process.exit(1)
   }
 }
