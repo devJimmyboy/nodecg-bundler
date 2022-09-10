@@ -45,6 +45,7 @@
   "files": [
     "dist",
     "templates",
+    "index.js",
     "README.md"
   ],
   "engines": {
