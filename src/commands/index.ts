@@ -3,28 +3,33 @@
  * https://github.com/tsantef/commander-starter
  */
 
-import fs from 'fs'
-import path from 'path'
+import fs from 'node:fs'
+import path from 'node:path'
 import { Command } from 'commander'
-
-export = function (program: Command) {
+import { fileURLToPath } from 'node:url'
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+console.log(import.meta.url)
+export default async function (program: Command) {
   const commands: { [x: string]: (program: Command) => void } = {}
-  const loadPath = path.dirname(__filename)
+  const loadPath = __dirname
 
   // Loop though command files
-  fs.readdirSync(loadPath)
-    .filter((filename) => {
-      return filename.endsWith('.js') && filename !== 'index.js'
-    })
-    .forEach((filename) => {
-      const name = filename.substring(0, filename.lastIndexOf('.'))
+  await Promise.all(
+    fs
+      .readdirSync(loadPath)
+      .filter((filename) => {
+        return filename.match(/\..?(js|ts)$/) && !filename.match(/index\..?(ts|js)$/)
+      })
+      .map(async (filename) => {
+        const name = filename.substring(0, filename.lastIndexOf('.'))
 
-      // Require command
-      const command = require(path.join(loadPath, filename))
-
-      // Initialize command
-      commands[name] = command(program)
-    })
+        // Require command
+        const command = await import(`./${filename}`)
+        // Initialize command
+        commands[name] = command.default(program)
+      })
+  )
 
   return commands
 }

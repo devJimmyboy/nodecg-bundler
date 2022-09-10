@@ -1,19 +1,19 @@
 import { build, createLogger, InlineConfig, LogLevel, mergeConfig, loadConfigFromFile } from 'vite'
-import { RollupWatcher } from 'rollup'
-import paths from '../config/paths'
+import paths from '../util/paths.js'
 import { builtinModules } from 'module'
-import extensionConfig from '../configs/extension.config'
-import graphicsConfig from '../configs/graphics.config'
-import dashboardConfig from '../configs/dashboard.config'
+import extensionConfig from '../configs/extension.config.js'
+import graphicsConfig from '../configs/graphics.config.js'
+import dashboardConfig from '../configs/dashboard.config.js'
 import { Command } from 'commander'
 import chalk from 'chalk'
-import path, { join } from 'path'
+import { join } from 'path'
+import fs from 'fs-extra'
 
 const mode = (process.env.MODE = process.env.MODE ?? process.env.NODE_ENV ?? 'production')
 const LOG_LEVEL: LogLevel = 'info'
 const logger = createLogger(LOG_LEVEL, { prefix: chalk.bold.green('[build]') })
 const { appPath, appPackageJson } = paths
-const pkg = require(appPackageJson)
+const pkg = fs.readJSONSync(appPackageJson)
 
 const sharedConfig: InlineConfig = {
   mode,
@@ -67,7 +67,7 @@ async function getCFG(type: 'extension' | 'graphics' | 'dashboard') {
   return mergeConfig(sharedConfig, configFromFile)
 }
 
-export = async function (program: Command) {
+export default async function (program: Command) {
   try {
     program
       .command('build')
@@ -78,23 +78,34 @@ export = async function (program: Command) {
       .option('-G, --no-graphics', "don't run the graphics build")
       .option('-d, --dashboard', 'run the dashboard build')
       .option('-D, --no-dashboard', "don't run the dashboard build")
+      .option('-m, --mode <mode>', 'specify env mode (default: production)', 'production')
       .combineFlagAndOptionalValue(false)
       .action(async function (opts) {
         let ext: RollupBuildOutput | undefined, graphics: RollupBuildOutput | undefined, dashboard: RollupBuildOutput | undefined
         const options = opts || {}
         if (options.extension) {
-          ext = await build(await getCFG('extension'))
+          const config = await getCFG('extension')
+          config.mode = opts.mode
+          ext = await build(config)
         }
         if (options.graphics) {
-          graphics = await build(await getCFG('graphics'))
+          const config = await getCFG('graphics')
+          config.mode = opts.mode
+          graphics = await build(config)
         }
         if (options.dashboard) {
-          dashboard = await build(await getCFG('dashboard'))
+          const config = await getCFG('dashboard')
+          config.mode = opts.mode
+          dashboard = await build(config)
         }
         if (!ext && !graphics && !dashboard) {
-          ext = await build(await getCFG('extension'))
-          graphics = await build(await getCFG('graphics'))
-          dashboard = await build(await getCFG('dashboard'))
+          const extConfig = await getCFG('extension')
+          const graphicsConfig = await getCFG('graphics')
+          const dashboardConfig = await getCFG('dashboard')
+          extConfig.mode = graphicsConfig.mode = dashboardConfig.mode = opts.mode
+          ext = await build(extConfig)
+          graphics = await build(graphicsConfig)
+          dashboard = await build(dashboardConfig)
         }
       })
   } catch (e) {

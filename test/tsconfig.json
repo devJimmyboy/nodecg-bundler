@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ESNext",
+    "lib": [
+      "ESNext"
+    ],
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "types": [
+      "node",
+      "ava"
+    ],
+    "incremental": true,
+    "pretty": true
+  },
+  "include": [
+    "**/*.spec.ts",
+    "types"
+  ]
+}

@@ -5,9 +5,15 @@ import semver from 'semver'
 import chalk from 'chalk'
 import { Command } from 'commander'
 import { request } from 'undici'
+import { fileURLToPath } from 'node:url'
+import fs from 'fs-extra'
+const { readJSONSync } = fs
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const program = new Command('nodecg-bundler')
-const packageVersion: string = require('../package.json').version
+const pkg = readJSONSync(path.resolve(__dirname, '../package.json'))
+const packageVersion = pkg.version
 
 // Check for updates
 request('http://registry.npmjs.org/nodecg-bundler/latest')
@@ -23,12 +29,21 @@ request('http://registry.npmjs.org/nodecg-bundler/latest')
       console.log('  Run ' + chalk.cyan.bold('npm install -g nodecg-bundler@latest') + ' to install the latest version')
     }
   })
+  .catch((err) => {
+    console.error(err)
+  })
 
 // Initialise CLI
 program.version(packageVersion).usage('<command> [options]')
 
 // Initialise commands
-require('./commands')(program)
+import initCommands from './commands/index.js'
+import path from 'node:path'
+
+initCommands(program).then(() => {
+  // Process commands
+  program.parse(process.argv)
+})
 
 // Handle unknown commands
 program.on('*', () => {
@@ -40,6 +55,3 @@ program.on('*', () => {
 if (!process.argv.slice(2).length) {
   program.help()
 }
-
-// Process commands
-program.parse(process.argv)

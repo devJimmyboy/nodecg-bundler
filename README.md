@@ -1,37 +1,31 @@
 # NodeCG Bundler
 
-## What is it?
+[![npm version][npm-version-src]][npm-version-href]
+[![npm downloads][npm-downloads-src]][npm-downloads-href]
+[![Github Actions][github-actions-src]][github-actions-href]
 
-NodeCG-Bundler is a wrapper around Vite that makes it super easy to bundle your NodeCG bundles.
+<!-- [![Codecov][codecov-src]][codecov-href] -->
 
-## Installation
-
-```bash
-# npm
-npm install --save-dev nodecg-bundler
-# or yarn
-yarn add --dev nodecg-bundler
-```
-
-## File Structure
-
-The file structure of a NodeCG bundle compiled by **nodecg-bundler** is by default:
-
-```bash
-src/
-| dashboard/
-|   index.html # Entry Point
-|   ...        # JS, CSS, Images
-| extension/
-|   index.ts   # Entry Point
-|   ...
-| graphics/
-|   index.html # Entry Point
-|   ...
-package.json
-```
+> A wrapper around Vite that makes it super easy to bundle your NodeCG bundles.
 
 ## Usage
+
+Install package:
+
+```sh
+# npm
+npm install --save-dev nodecg-bundler
+```
+
+```sh
+# yarn
+yarn install --dev nodecg-bundler
+```
+
+```sh
+# pnpm
+pnpm install --save-dev nodecg-bundler
+```
 
 In your package.json file, add the following to your scripts section:
 
@@ -64,6 +58,24 @@ Examples:
 - `nodecg-bundler build -e -d` will build the extension and the dashboard. (equivalent to `nodecg-bundler build -ed` and `nodecg-bundler build --extension -dashboard`)
 
 - `nodecg-bundler build -E` is the negation of -e, so it will build everything except the extension. (equivalent to `nodecg-bundler build -dg`)
+
+## File Structure
+
+The file structure of a NodeCG bundle compiled by **nodecg-bundler** is by default:
+
+```bash
+src/
+| dashboard/
+|   index.html # Entry Point
+|   ...        # JS, CSS, Images
+| extension/
+|   index.ts   # Entry Point
+|   ...
+| graphics/
+|   index.html # Entry Point
+|   ...
+package.json
+```
 
 ## Configuration
 
@@ -127,8 +139,31 @@ export default defineConfig(({ mode }) => {
 })
 ```
 
+## 💻 Development
+
+- Clone this repository
+- Enable [Corepack](https://github.com/nodejs/corepack) using `corepack enable` (use `npm i -g corepack` for Node.js < 16.10)
+- Install dependencies using `pnpm install`
+- Run interactive tests using `pnpm dev`
+
+## License
+
+Made with 💛 by devJimmyboy
+
+Published under [MIT License](./LICENSE).
+
 ## References
 
 - [Vite](https://vitejs.dev)
 - [Create Vite](https://vite.dev/guide/create-vite)
 - [NodeCG CLI](https://github.com/nodecg/nodecg-cli)
+
+<!-- Badges -->
+<!-- Badges -->
+
+[npm-version-src]: https://img.shields.io/npm/v/nodecg-bundler?style=flat-square
+[npm-version-href]: https://npmjs.com/package/nodecg-bundler
+[npm-downloads-src]: https://img.shields.io/npm/dm/nodecg-bundler?style=flat-square
+[npm-downloads-href]: https://npmjs.com/package/nodecg-bundler
+[github-actions-src]: https://img.shields.io/github/workflow/status/devJimmyboy/nodecg-bundler/ci/main?style=flat-square
+[github-actions-href]: https://github.com/devJimmyboy/nodecg-bundler/actions?query=workflow%3Aci

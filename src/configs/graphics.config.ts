@@ -1,22 +1,23 @@
-import { defineConfig } from 'vite'
-import paths from '../config/paths'
+import { createLogger, defineConfig } from 'vite'
 
-const isDev = process.env.NODE_ENV === 'development'
-
-export default defineConfig({
-  mode: isDev ? 'development' : 'production',
-  root: 'src/graphics',
-  base: '',
-  build: {
-    outDir: '../../graphics',
-    minify: isDev,
-    emptyOutDir: false,
-    chunkSizeWarningLimit: isDev ? 0 : 1024,
-    sourcemap: isDev ? 'inline' : false,
-    watch: isDev
-      ? {
-          include: ['src/graphics/**/*'],
-        }
-      : undefined,
-  },
+export default defineConfig(({ mode }) => {
+  const isDev = mode === 'development'
+  return {
+    mode: isDev ? 'development' : 'production',
+    root: 'src/graphics',
+    base: '',
+    customLogger: createLogger('info', { prefix: '[graphics]' }),
+    build: {
+      outDir: '../../graphics',
+      minify: isDev,
+      emptyOutDir: false,
+      chunkSizeWarningLimit: isDev ? 0 : 1024,
+      sourcemap: isDev ? 'inline' : false,
+      watch: isDev
+        ? {
+            include: ['src/graphics/**/*'],
+          }
+        : undefined,
+    },
+  }
 })

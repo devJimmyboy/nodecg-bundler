@@ -1,21 +1,29 @@
-import { build, createLogger, InlineConfig, LogLevel, mergeConfig, loadConfigFromFile } from 'vite'
+import { build, createLogger, InlineConfig, LogLevel, mergeConfig, loadConfigFromFile, UserConfig, ConfigEnv } from 'vite'
 import { RollupWatcher } from 'rollup'
-import paths from '../config/paths'
+import paths from '../util/paths.js'
 import { builtinModules } from 'module'
-import extensionConfig from '../configs/extension.config'
-import graphicsConfig from '../configs/graphics.config'
-import dashboardConfig from '../configs/dashboard.config'
+
 import { Command } from 'commander'
-import path, { join } from 'path'
+import { join } from 'path'
 import chalk from 'chalk'
-import { existsSync } from 'fs'
+// import { existsSync } from 'node:fs'
+import { setupWatcher } from '../util/watch.js'
+import fs from 'fs-extra'
+import extConfig from '../configs/extension.config.js'
+import graphConfig from '../configs/graphics.config.js'
+import dashConfig from '../configs/dashboard.config.js'
+let extensionConfig: UserConfig = {}
+let graphicsConfig: UserConfig = {}
+let dashboardConfig: UserConfig = {}
 
 process.env.NODE_ENV = process.env.NODE_ENV ?? 'development'
 const mode = (process.env.MODE = process.env.MODE ?? process.env.NODE_ENV)
 
 const LOG_LEVEL: LogLevel = 'info'
 const { appPath, appPackageJson } = paths
-const pkg = require(appPackageJson)
+const pkg = fs.readJSONSync(appPackageJson)
+// const __filename = fileURLToPath(import.meta.url)
+// const __dirname = dirname(__filename)
 
 const sharedConfig: (type: string) => InlineConfig = (type: string) => ({
   mode,
@@ -24,20 +32,19 @@ const sharedConfig: (type: string) => InlineConfig = (type: string) => ({
     sourcemap: 'inline',
     watch: {
       include: [`src/${type}/**/*`],
+      clearScreen: false,
     },
   },
+  clearScreen: false,
   logLevel: LOG_LEVEL,
 })
 
-const rootConfigPromise = loadConfigFromFile({ command: 'build', mode: mode }, undefined, appPath).catch((err) => {
-  console.error(err)
-  process.exit(1)
-})
+let rootConfigPromise: ReturnType<typeof loadConfigFromFile>
 
 async function getCFG(type: 'extension' | 'graphics' | 'dashboard') {
   const rootConfig = await rootConfigPromise
 
-  const userConfig = await loadConfigFromFile({ command: 'build', mode: mode }, undefined, join(appPath, `src/${type}`)).catch((err) => {
+  const userConfig = await loadConfigFromFile({ command: 'build', mode: 'development' }, undefined, join(appPath, `src/${type}`)).catch((err) => {
     console.error(err)
     process.exit(1)
   })
@@ -62,22 +69,31 @@ async function getCFG(type: 'extension' | 'graphics' | 'dashboard') {
   return mergeConfig(sharedConfig(type), configFromFile)
 }
 
-async function setupExtensionWatcher() {
-  return build(await getCFG('extension'))
+async function setupExtensionWatcher(mode: 'development' | 'production') {
+  console.log(chalk.blue('[extension]'), chalk.gray('Building...'))
+  const config = await getCFG('extension')
+  config.mode = mode
+  const watcher = (await build(config)) as RollupWatcher
+  return watcher
 }
 
-async function setupGraphicsWatcher() {
-  return build(await getCFG('graphics'))
+async function setupGraphicsWatcher(mode: 'development' | 'production') {
+  console.log(chalk.blue('[graphics]'), chalk.gray('Building...'))
+  const config = await getCFG('graphics')
+  config.mode = mode
+  return build(config)
 }
-async function setupDashboardWatcher() {
-  return build(await getCFG('dashboard'))
+async function setupDashboardWatcher(mode: 'development' | 'production') {
+  console.log(chalk.blue('[dashboard]'), chalk.gray('Building...'))
+  const config = await getCFG('dashboard')
+  config.mode = mode
+  return build(config)
 }
 
-export = async function (program: Command) {
+export default async function (program: Command) {
   try {
     program
-      .command('*')
-      .alias('watch')
+      .command('watch', { isDefault: true })
       .alias('dev')
       .description('run vite build -w in development mode. This is activated by default when no arguments are passed.')
       .option('-e, --extension', 'run only the extension build')
@@ -86,24 +102,73 @@ export = async function (program: Command) {
       .option('-G, --no-graphics', "don't run the graphics build")
       .option('-d, --dashboard', 'run the dashboard build')
       .option('-D, --no-dashboard', "don't run the dashboard build")
+      .option('-m, --mode <mode>', 'specify env mode (default: development)', 'development')
       .combineFlagAndOptionalValue(false)
       .action(async function (opts) {
+        const watcher = setupWatcher(['./src/extension/**/*', './src/graphics', './src/dashboard/**/*', './vite.config.(ts|js)'], {
+          cwd: appPath,
+        })
+        const configEnv: ConfigEnv = {
+          mode: opts.mode || 'development',
+          command: 'build',
+        }
+        extensionConfig = await (typeof extConfig === 'function' ? extConfig(configEnv) : extConfig)
+        graphicsConfig = await (typeof graphConfig === 'function' ? graphConfig(configEnv) : graphConfig)
+        dashboardConfig = await (typeof dashConfig === 'function' ? dashConfig(configEnv) : dashConfig)
+
+        rootConfigPromise = loadConfigFromFile(configEnv, undefined, appPath, LOG_LEVEL).catch((err) => {
+          console.error(err)
+          return null
+        })
+
         let ext: RollupWatcher | undefined, graphics: RollupWatcher | undefined, dashboard: RollupWatcher | undefined
         const options = opts || {}
         if (options.extension) {
-          ext = (await setupExtensionWatcher()) as RollupWatcher
+          ext = (await setupExtensionWatcher(opts.mode)) as RollupWatcher
         }
         if (options.graphics) {
-          graphics = (await setupGraphicsWatcher()) as RollupWatcher
+          graphics = (await setupGraphicsWatcher(opts.mode)) as RollupWatcher
         }
         if (options.dashboard) {
-          dashboard = (await setupDashboardWatcher()) as RollupWatcher
+          dashboard = (await setupDashboardWatcher(opts.mode)) as RollupWatcher
         }
         if (!ext && !graphics && !dashboard) {
-          ext = (await setupExtensionWatcher()) as RollupWatcher
-          graphics = (await setupGraphicsWatcher()) as RollupWatcher
-          dashboard = (await setupDashboardWatcher()) as RollupWatcher
+          ext = (await setupExtensionWatcher(opts.mode)) as RollupWatcher
+          graphics = (await setupGraphicsWatcher(opts.mode)) as RollupWatcher
+          dashboard = (await setupDashboardWatcher(opts.mode)) as RollupWatcher
         }
+        watcher.on('change', async (file) => {
+          console.log(chalk.green(`File ${file} changed`))
+          if (file.includes('src/extension')) {
+            if (ext) {
+              ext.close()
+            }
+            ext = (await setupExtensionWatcher(opts.mode)) as RollupWatcher
+          }
+          if (file.includes('src/graphics')) {
+            if (graphics) {
+              graphics.close()
+            }
+            graphics = (await setupGraphicsWatcher(opts.mode)) as RollupWatcher
+          }
+          if (file.includes('src/dashboard')) {
+            if (dashboard) {
+              dashboard.close()
+            }
+            dashboard = (await setupDashboardWatcher(opts.mode)) as RollupWatcher
+          }
+        })
+
+        watcher.on('config-change', async (file) => {
+          if (!file.includes('vite.config')) return
+          ext?.close()
+          graphics?.close()
+          dashboard?.close()
+          ext = (await setupExtensionWatcher(opts.mode)) as RollupWatcher
+          graphics = (await setupGraphicsWatcher(opts.mode)) as RollupWatcher
+          dashboard = (await setupDashboardWatcher(opts.mode)) as RollupWatcher
+        })
+
         process.once('beforeExit', async (code) => {
           console.log('Closing watchers...')
           const proms = []
