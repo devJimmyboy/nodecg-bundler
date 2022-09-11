@@ -7,25 +7,23 @@ export default defineConfig(({ mode }) => {
   return {
     mode: isDev ? 'development' : 'production',
     root: rootDir,
+    envDir: process.cwd(),
     customLogger: createLogger('info', { prefix: '[extension]' }),
     build: {
       outDir: '../../extension',
-      minify: isDev,
+      minify: !isDev,
       emptyOutDir: true,
       chunkSizeWarningLimit: isDev ? 0 : 1024,
       sourcemap: isDev,
       watch: isDev
         ? {
-            include: ['./src/extension/**/*.{ts,js}'],
+            include: [path.join(rootDir, '/**/*.{ts,js}')],
           }
         : undefined,
       lib: {
-        entry: path.resolve(rootDir, 'index.ts'),
+        entry: path.resolve(rootDir, './index.ts'),
         formats: ['cjs'],
-        fileName: (form) => `[name].${form === 'cjs' ? 'js' : form}`,
-      },
-      rollupOptions: {
-        external: ['nodecg-types'],
+        fileName: `index`,
       },
     },
   }

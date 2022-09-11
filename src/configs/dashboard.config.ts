@@ -6,6 +6,7 @@ export default defineConfig(({ mode }) => {
     mode: isDev ? 'development' : 'production',
     root: 'src/dashboard',
     base: '',
+    envDir: process.cwd(),
     customLogger: createLogger('info', { prefix: '[dashboard]' }),
     build: {
       outDir: '../../dashboard',

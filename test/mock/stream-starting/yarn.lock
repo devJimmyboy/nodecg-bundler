@@ -582,6 +582,11 @@
   resolved "https://registry.yarnpkg.com/@types/mime/-/mime-1.3.2.tgz#93e25bf9ee75fe0fd80b594bc4feb0e862111b5a"
   integrity sha512-YATxVxgRqNH6nHEIsvg6k2Boc1JHI9ZbH5iWFFv/MTkchz3b1ieGDa5T0a9RznNdI0KhVbdbWSN+KWWrQZRxTw==
 
+"@types/nanotimer@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@types/nanotimer/-/nanotimer-0.3.0.tgz#8db511a7ddcac749afd28d312fb275801b5ed51d"
+  integrity sha512-D1EtCce8B5vyb/47+xOpBkv4NRvFwSIVBFjbc38RNTsk2GPYYKwWQP7fPp+2AnbM7+W01TCUAmJGLRzfITjuuA==
+
 "@types/node@*":
   version "17.0.23"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-17.0.23.tgz#3b41a6e643589ac6442bdbd7a4a3ded62f33f7da"

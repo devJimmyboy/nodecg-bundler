@@ -1,6 +1,7 @@
 declare module 'mock-nodecg' {
   type NodeCG<T> = import('nodecg-types/types/lib/nodecg-instance').NodeCG<T>
   class MockNodeCG implements NodeCG<'server'> {
+    constructor(options: { bundleName: string })
     getSocketIOServer(): SocketIO.Server
     Router(options?: import('express').RouterOptions): import('express').Router
     mount: import('express-serve-static-core').IRouterHandler<import('express').Router, string> & import('express-serve-static-core').IRouterMatcher<import('express').Router, any>

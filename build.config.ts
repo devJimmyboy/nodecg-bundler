@@ -5,12 +5,27 @@ import { defineBuildConfig } from 'unbuild'
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
 
 export default defineBuildConfig({
-  entries: ['src/index'],
+  entries: [
+    {
+      builder: 'mkdist',
+      input: './src/',
+      format: 'esm',
+      ext: 'js',
+      outDir: './dist',
+    },
+  ],
   clean: true,
   rollup: {
-    inlineDependencies: true,
+    inlineDependencies: false,
     esbuild: {
       minify: true,
+      platform: 'node',
+    },
+    alias: {
+      entries: {},
+    },
+    resolve: {
+      preferBuiltins: true,
     },
   },
   alias: {

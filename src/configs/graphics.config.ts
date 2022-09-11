@@ -6,6 +6,7 @@ export default defineConfig(({ mode }) => {
     mode: isDev ? 'development' : 'production',
     root: 'src/graphics',
     base: '',
+    envDir: process.cwd(),
     customLogger: createLogger('info', { prefix: '[graphics]' }),
     build: {
       outDir: '../../graphics',

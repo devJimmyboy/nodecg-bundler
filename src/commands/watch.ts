@@ -1,4 +1,4 @@
-import { build, createLogger, InlineConfig, LogLevel, mergeConfig, loadConfigFromFile, UserConfig, ConfigEnv } from 'vite'
+import { build, createLogger, InlineConfig, LogLevel, mergeConfig, loadConfigFromFile, UserConfig, ConfigEnv, resolveConfig } from 'vite'
 import { RollupWatcher } from 'rollup'
 import paths from '../util/paths.js'
 import { builtinModules } from 'module'
@@ -16,9 +16,6 @@ let extensionConfig: UserConfig = {}
 let graphicsConfig: UserConfig = {}
 let dashboardConfig: UserConfig = {}
 
-process.env.NODE_ENV = process.env.NODE_ENV ?? 'development'
-const mode = (process.env.MODE = process.env.MODE ?? process.env.NODE_ENV)
-
 const LOG_LEVEL: LogLevel = 'info'
 const { appPath, appPackageJson } = paths
 const pkg = fs.readJSONSync(appPackageJson)
@@ -26,7 +23,6 @@ const pkg = fs.readJSONSync(appPackageJson)
 // const __dirname = dirname(__filename)
 
 const sharedConfig: (type: string) => InlineConfig = (type: string) => ({
-  mode,
   build: {
     minify: false,
     sourcemap: 'inline',
@@ -52,7 +48,7 @@ async function getCFG(type: 'extension' | 'graphics' | 'dashboard') {
   config.customLogger = createLogger(LOG_LEVEL, { prefix: `[${type}]` })
   if (type === 'extension') {
     const externals = [...builtinModules, ...Object.keys(pkg.dependencies || {})]
-    config = mergeConfig(config, { build: { rollupOptions: { external: externals } } })
+    config = mergeConfig(config, resolveConfig({ build: { rollupOptions: { external: externals } }, esbuild: { platform: 'node' } }, 'build', 'development'))
   }
   let configFromFile = {}
   switch (type) {
