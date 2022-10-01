@@ -1,12 +1,15 @@
-import { build, createLogger, InlineConfig, LogLevel, mergeConfig, loadConfigFromFile } from 'vite'
+import { build, createLogger, InlineConfig, LogLevel, mergeConfig, loadConfigFromFile, ConfigEnv, UserConfig } from 'vite'
 import paths from '../util/paths.js'
-import graphicsConfig from '../configs/graphics.config.js'
-import dashboardConfig from '../configs/dashboard.config.js'
+import graphConfig from '../configs/graphics.config.js'
+import dashConfig from '../configs/dashboard.config.js'
 import { Command } from 'commander'
 import chalk from 'chalk'
 import { join, resolve } from 'path'
 import fs from 'fs-extra'
 import { buildExt } from '../extension/index.js'
+
+let graphicsConfig: UserConfig = {}
+let dashboardConfig: UserConfig = {}
 
 const mode = (process.env.MODE = process.env.MODE ?? process.env.NODE_ENV ?? 'production')
 const LOG_LEVEL: LogLevel = 'info'
@@ -14,26 +17,20 @@ const logger = createLogger(LOG_LEVEL, { prefix: chalk.bold.green('[build]') })
 const { appPath, appPackageJson } = paths
 const pkg = fs.readJSONSync(appPackageJson)
 
-const sharedConfig: InlineConfig = {
-  mode,
-  logLevel: LOG_LEVEL,
-}
-
-const rootConfigPromise = loadConfigFromFile({ command: 'build', mode: mode }, undefined, appPath)
-  .then((root) => ({
-    ...root,
-    config: {
-      ...(root?.config || {}),
-      build: {
-        ...(root?.config?.build || {}),
-        outDir: root?.config?.build?.outDir ? join(appPath, root.config.build.outDir) : join(appPath, 'dist'),
-      },
+const sharedConfig: (type: string) => InlineConfig = (type: string) => ({
+  build: {
+    minify: false,
+    sourcemap: 'inline',
+    watch: {
+      include: [`src/${type}/**/*`],
+      clearScreen: false,
     },
-  }))
-  .catch((err) => {
-    logger.error(err)
-    process.exit(1)
-  })
+  },
+  clearScreen: false,
+  logLevel: LOG_LEVEL,
+})
+
+let rootConfigPromise: ReturnType<typeof loadConfigFromFile>
 
 async function getCFG(type: 'graphics' | 'dashboard') {
   logger.info(chalk.yellow(`Loading ${type} config...`))
@@ -60,6 +57,20 @@ async function getCFG(type: 'graphics' | 'dashboard') {
   return mergeConfig(sharedConfig, configFromFile)
 }
 
+async function setupGraphicsWatcher(mode: 'development' | 'production') {
+  console.log(chalk.blue('[graphics]'), chalk.gray('Building...'))
+  const config = await getCFG('graphics')
+  config.mode = mode
+  return build(config)
+}
+
+async function setupDashboardWatcher(mode: 'development' | 'production') {
+  console.log(chalk.blue('[dashboard]'), chalk.gray('Building...'))
+  const config = await getCFG('dashboard')
+  config.mode = mode
+  return build(config)
+}
+
 export default async function (program: Command) {
   try {
     program
@@ -74,7 +85,19 @@ export default async function (program: Command) {
       .option('-m, --mode <mode>', 'specify env mode (default: production)', 'production')
       .combineFlagAndOptionalValue(false)
       .action(async function (opts) {
-        let ext: RollupBuildOutput | undefined, graphics: RollupBuildOutput | undefined, dashboard: RollupBuildOutput | undefined
+        const configEnv: ConfigEnv = {
+          mode: opts.mode || 'production',
+          command: 'build',
+        }
+        graphicsConfig = await (typeof graphConfig === 'function' ? graphConfig(configEnv) : graphConfig)
+        dashboardConfig = await (typeof dashConfig === 'function' ? dashConfig(configEnv) : dashConfig)
+
+        rootConfigPromise = loadConfigFromFile(configEnv, undefined, appPath, LOG_LEVEL).catch((err) => {
+          console.error(err)
+          return null
+        })
+
+        let graphics: RollupBuildOutput | undefined, dashboard: RollupBuildOutput | undefined
         const options = opts || {}
         if (options.extension) {
           await buildExt({
@@ -100,7 +123,7 @@ export default async function (program: Command) {
           config.mode = opts.mode
           dashboard = await build(config)
         }
-        if (!ext && !graphics && !dashboard) {
+        if (!options.ext && !options.graphics && !options.dashboard) {
           const graphicsConfig = await getCFG('graphics')
           const dashboardConfig = await getCFG('dashboard')
           graphicsConfig.mode = dashboardConfig.mode = opts.mode
