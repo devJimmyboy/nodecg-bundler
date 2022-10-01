@@ -1,13 +1,12 @@
 import { build, createLogger, InlineConfig, LogLevel, mergeConfig, loadConfigFromFile } from 'vite'
 import paths from '../util/paths.js'
-import { builtinModules } from 'module'
-import extensionConfig from '../configs/extension.config.js'
 import graphicsConfig from '../configs/graphics.config.js'
 import dashboardConfig from '../configs/dashboard.config.js'
 import { Command } from 'commander'
 import chalk from 'chalk'
-import { join } from 'path'
+import { join, resolve } from 'path'
 import fs from 'fs-extra'
+import { buildExt } from '../extension/index.js'
 
 const mode = (process.env.MODE = process.env.MODE ?? process.env.NODE_ENV ?? 'production')
 const LOG_LEVEL: LogLevel = 'info'
@@ -36,7 +35,7 @@ const rootConfigPromise = loadConfigFromFile({ command: 'build', mode: mode }, u
     process.exit(1)
   })
 
-async function getCFG(type: 'extension' | 'graphics' | 'dashboard') {
+async function getCFG(type: 'graphics' | 'dashboard') {
   logger.info(chalk.yellow(`Loading ${type} config...`))
   const rootConfig = await rootConfigPromise
 
@@ -46,15 +45,9 @@ async function getCFG(type: 'extension' | 'graphics' | 'dashboard') {
   })
   let config = mergeConfig(rootConfig?.config || {}, userConfig?.config || {})
   config.customLogger = createLogger(LOG_LEVEL, { prefix: `[${type}]` })
-  if (type === 'extension') {
-    const externals = [...builtinModules, ...Object.keys(pkg.dependencies || {})]
-    config = mergeConfig(config, { build: { rollupOptions: { external: externals } } })
-  }
+
   let configFromFile = {}
   switch (type) {
-    case 'extension':
-      configFromFile = mergeConfig(extensionConfig, config)
-      break
     case 'graphics':
       configFromFile = mergeConfig(graphicsConfig, config)
       break
@@ -84,9 +77,18 @@ export default async function (program: Command) {
         let ext: RollupBuildOutput | undefined, graphics: RollupBuildOutput | undefined, dashboard: RollupBuildOutput | undefined
         const options = opts || {}
         if (options.extension) {
-          const config = await getCFG('extension')
-          config.mode = opts.mode
-          ext = await build(config)
+          await buildExt({
+            composite: true,
+            outDir: resolve(appPath, './extension'),
+            hooks: {
+              'build:before': (ctx) => {
+                logger.info('building extension...' + ctx.buildEntries.map((ent) => ent.path).join('\n'))
+              },
+              'build:done': (ctx) => {
+                logger.info('done building extension')
+              },
+            },
+          })
         }
         if (options.graphics) {
           const config = await getCFG('graphics')
@@ -99,18 +101,28 @@ export default async function (program: Command) {
           dashboard = await build(config)
         }
         if (!ext && !graphics && !dashboard) {
-          const extConfig = await getCFG('extension')
           const graphicsConfig = await getCFG('graphics')
           const dashboardConfig = await getCFG('dashboard')
-          extConfig.mode = graphicsConfig.mode = dashboardConfig.mode = opts.mode
-          ext = await build(extConfig)
+          graphicsConfig.mode = dashboardConfig.mode = opts.mode
+          await buildExt({
+            composite: true,
+            outDir: resolve(appPath, './extension'),
+            hooks: {
+              'build:before': (ctx) => {
+                logger.info('building extension...' + ctx.buildEntries.map((ent) => ent.path).join('\n'))
+              },
+              'build:done': (ctx) => {
+                logger.info('done building extension')
+              },
+            },
+          })
           graphics = await build(graphicsConfig)
           dashboard = await build(dashboardConfig)
         }
       })
   } catch (e) {
     console.error(e)
-    process.exit(1)
+    process.exit(0)
   }
 }
 type ThenArg<T> = T extends PromiseLike<infer U> ? U : T

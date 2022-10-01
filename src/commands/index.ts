@@ -9,7 +9,7 @@ import { Command } from 'commander'
 import { fileURLToPath } from 'node:url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-console.log(import.meta.url)
+// console.log(import.meta.url)
 export default async function (program: Command) {
   const commands: { [x: string]: (program: Command) => void } = {}
   const loadPath = __dirname

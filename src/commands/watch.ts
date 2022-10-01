@@ -1,24 +1,24 @@
 import { build, createLogger, InlineConfig, LogLevel, mergeConfig, loadConfigFromFile, UserConfig, ConfigEnv, resolveConfig } from 'vite'
 import { RollupWatcher } from 'rollup'
 import paths from '../util/paths.js'
-import { builtinModules } from 'module'
 
 import { Command } from 'commander'
 import { join } from 'path'
 import chalk from 'chalk'
 // import { existsSync } from 'node:fs'
 import { setupWatcher } from '../util/watch.js'
-import fs from 'fs-extra'
-import extConfig from '../configs/extension.config.js'
+// import fs from 'fs-extra'
 import graphConfig from '../configs/graphics.config.js'
 import dashConfig from '../configs/dashboard.config.js'
-let extensionConfig: UserConfig = {}
+import { FSWatcher } from 'chokidar'
+import { setupExtensionWatcher } from '../extension/index.js'
+
 let graphicsConfig: UserConfig = {}
 let dashboardConfig: UserConfig = {}
 
 const LOG_LEVEL: LogLevel = 'info'
 const { appPath, appPackageJson } = paths
-const pkg = fs.readJSONSync(appPackageJson)
+// const pkg = fs.readJSONSync(appPackageJson)
 // const __filename = fileURLToPath(import.meta.url)
 // const __dirname = dirname(__filename)
 
@@ -37,7 +37,7 @@ const sharedConfig: (type: string) => InlineConfig = (type: string) => ({
 
 let rootConfigPromise: ReturnType<typeof loadConfigFromFile>
 
-async function getCFG(type: 'extension' | 'graphics' | 'dashboard') {
+async function getCFG(type: 'graphics' | 'dashboard') {
   const rootConfig = await rootConfigPromise
 
   const userConfig = await loadConfigFromFile({ command: 'build', mode: 'development' }, undefined, join(appPath, `src/${type}`)).catch((err) => {
@@ -46,15 +46,8 @@ async function getCFG(type: 'extension' | 'graphics' | 'dashboard') {
   })
   let config = mergeConfig(rootConfig?.config || {}, userConfig?.config || {})
   config.customLogger = createLogger(LOG_LEVEL, { prefix: `[${type}]` })
-  if (type === 'extension') {
-    const externals = [...builtinModules, ...Object.keys(pkg.dependencies || {})]
-    config = mergeConfig(config, resolveConfig({ build: { rollupOptions: { external: externals } }, esbuild: { platform: 'node' } }, 'build', 'development'))
-  }
   let configFromFile = {}
   switch (type) {
-    case 'extension':
-      configFromFile = mergeConfig(extensionConfig, config)
-      break
     case 'graphics':
       configFromFile = mergeConfig(graphicsConfig, config)
       break
@@ -63,14 +56,6 @@ async function getCFG(type: 'extension' | 'graphics' | 'dashboard') {
       break
   }
   return mergeConfig(sharedConfig(type), configFromFile)
-}
-
-async function setupExtensionWatcher(mode: 'development' | 'production') {
-  console.log(chalk.blue('[extension]'), chalk.gray('Building...'))
-  const config = await getCFG('extension')
-  config.mode = mode
-  const watcher = (await build(config)) as RollupWatcher
-  return watcher
 }
 
 async function setupGraphicsWatcher(mode: 'development' | 'production') {
@@ -108,7 +93,7 @@ export default async function (program: Command) {
           mode: opts.mode || 'development',
           command: 'build',
         }
-        extensionConfig = await (typeof extConfig === 'function' ? extConfig(configEnv) : extConfig)
+
         graphicsConfig = await (typeof graphConfig === 'function' ? graphConfig(configEnv) : graphConfig)
         dashboardConfig = await (typeof dashConfig === 'function' ? dashConfig(configEnv) : dashConfig)
 
@@ -117,10 +102,10 @@ export default async function (program: Command) {
           return null
         })
 
-        let ext: RollupWatcher | undefined, graphics: RollupWatcher | undefined, dashboard: RollupWatcher | undefined
+        let ext: FSWatcher | undefined, graphics: RollupWatcher | undefined, dashboard: RollupWatcher | undefined
         const options = opts || {}
         if (options.extension) {
-          ext = (await setupExtensionWatcher(opts.mode)) as RollupWatcher
+          ext = await setupExtensionWatcher(opts.mode)
         }
         if (options.graphics) {
           graphics = (await setupGraphicsWatcher(opts.mode)) as RollupWatcher
@@ -129,38 +114,16 @@ export default async function (program: Command) {
           dashboard = (await setupDashboardWatcher(opts.mode)) as RollupWatcher
         }
         if (!ext && !graphics && !dashboard) {
-          ext = (await setupExtensionWatcher(opts.mode)) as RollupWatcher
+          ext = await setupExtensionWatcher(opts.mode)
           graphics = (await setupGraphicsWatcher(opts.mode)) as RollupWatcher
           dashboard = (await setupDashboardWatcher(opts.mode)) as RollupWatcher
         }
-        watcher.on('change', async (file) => {
-          console.log(chalk.green(`File ${file} changed`))
-          if (file.includes('src/extension')) {
-            if (ext) {
-              ext.close()
-            }
-            ext = (await setupExtensionWatcher(opts.mode)) as RollupWatcher
-          }
-          if (file.includes('src/graphics')) {
-            if (graphics) {
-              graphics.close()
-            }
-            graphics = (await setupGraphicsWatcher(opts.mode)) as RollupWatcher
-          }
-          if (file.includes('src/dashboard')) {
-            if (dashboard) {
-              dashboard.close()
-            }
-            dashboard = (await setupDashboardWatcher(opts.mode)) as RollupWatcher
-          }
-        })
 
         watcher.on('config-change', async (file) => {
-          if (!file.includes('vite.config')) return
-          ext?.close()
+          if (!file.match(/^(vite|build)\.config/)) return
           graphics?.close()
           dashboard?.close()
-          ext = (await setupExtensionWatcher(opts.mode)) as RollupWatcher
+
           graphics = (await setupGraphicsWatcher(opts.mode)) as RollupWatcher
           dashboard = (await setupDashboardWatcher(opts.mode)) as RollupWatcher
         })
@@ -171,7 +134,7 @@ export default async function (program: Command) {
           function isClosable(watcher: RollupWatcher | undefined): watcher is RollupWatcher {
             return !!watcher && typeof watcher.close === 'function'
           }
-          proms.push(isClosable(ext) && ext.close(), isClosable(graphics) && graphics.close(), isClosable(dashboard) && dashboard.close())
+          proms.push(ext.close(), isClosable(graphics) && graphics.close(), isClosable(dashboard) && dashboard.close())
           await Promise.all(proms)
           return process.exit(code)
         })

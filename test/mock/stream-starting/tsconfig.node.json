@@ -3,7 +3,9 @@
     "target": "es2017",
     "sourceMap": true,
     "esModuleInterop": true,
-    "lib": ["es2017"],
+    "lib": [
+      "es2017"
+    ],
     "outDir": "../../extension",
     "alwaysStrict": true,
     "forceConsistentCasingInFileNames": true,
@@ -15,7 +17,12 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "module": "CommonJS",
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "baseUrl": "./src/extension"
   },
-  "include": ["**/*.ts"]
+  "include": [
+    "./src/extension/**/*.ts"
+  ]
 }
